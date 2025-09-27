@@ -135,5 +135,5 @@ ehthumbs.db
 Thumbs.db
 
 # Portfolio-specific files
-data/portfolio.json.backup
+data
 *.backup
