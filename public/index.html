@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Manager</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-chart-line"></i> Portfolio Manager</h1>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="showDcaPlanningModal()">
+                        <i class="fas fa-chart-line"></i> DCA Planning
+                    </button>
+                    <button class="btn btn-secondary" onclick="showReconciliationModal()">
+                        <i class="fas fa-balance-scale"></i> Reconcile Accounts
+                    </button>
+                    <button class="btn btn-secondary" onclick="showAssetClassesModal()">
+                        <i class="fas fa-layer-group"></i> Asset Classes
+                    </button>
+                    <button class="btn btn-secondary" onclick="showAccountsModal()">
+                        <i class="fas fa-university"></i> Manage Accounts
+                    </button>
+                    <button class="btn btn-primary" onclick="showAddHoldingModal()">
+                        <i class="fas fa-plus"></i> Add Holding
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Portfolio Summary -->
+            <section class="portfolio-summary">
+                <div class="summary-cards">
+                    <div class="summary-card">
+                        <div class="card-icon">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>Total Value</h3>
+                            <p class="value" id="totalValue">$0.00</p>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="card-icon">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>Total Cost</h3>
+                            <p class="value" id="totalCost">$0.00</p>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="card-icon">
+                            <i class="fas fa-chart-area"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>Gain/Loss</h3>
+                            <p class="value" id="totalGainLoss">$0.00</p>
+                            <span class="percentage" id="totalGainLossPercent">0.00%</span>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="card-icon">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>Asset Classes</h3>
+                            <p class="value" id="assetClassesCount">0</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Asset Allocation -->
+            <section class="asset-allocation-section">
+                <div class="section-header">
+                    <h2>Asset Allocation</h2>
+                    <div class="section-actions">
+                        <button class="btn btn-secondary" onclick="refreshPortfolio()">
+                            <i class="fas fa-refresh"></i> Refresh
+                        </button>
+                        <button class="btn btn-secondary" onclick="toggleView()" id="viewToggle">
+                            <i class="fas fa-list"></i> View Holdings
+                        </button>
+                    </div>
+                </div>
+                <div class="asset-allocation-container">
+                    <div class="allocation-grid" id="allocationGrid">
+                        <!-- Asset allocation cards will be populated here -->
+                    </div>
+                    <div id="allocationEmptyState" class="empty-state" style="display: none;">
+                        <i class="fas fa-chart-pie"></i>
+                        <h3>No Investments Yet</h3>
+                        <p>Start building your portfolio by adding investments across different asset classes.</p>
+                        <button class="btn btn-primary" onclick="showAddHoldingModal()">
+                            <i class="fas fa-plus"></i> Add Your First Investment
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Holdings Table (Hidden by default) -->
+            <section class="holdings-section" id="holdingsSection" style="display: none;">
+                <div class="section-header">
+                    <h2>All Holdings</h2>
+                    <div class="section-actions">
+                        <button class="btn btn-secondary" onclick="toggleView()">
+                            <i class="fas fa-chart-pie"></i> View Asset Allocation
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="holdings-table">
+                        <thead>
+                            <tr>
+                                <th>Account</th>
+                                <th>Asset Class</th>
+                                <th>Symbol</th>
+                                <th>Name</th>
+                                <th>Shares</th>
+                                <th>Purchase Price</th>
+                                <th>Current Price</th>
+                                <th>Total Value</th>
+                                <th>Gain/Loss</th>
+                                <th>%</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="holdingsTableBody">
+                            <!-- Holdings will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Recent Transactions -->
+            <section class="transactions-section">
+                <div class="section-header">
+                    <h2>Recent Transactions</h2>
+                </div>
+                <div class="transactions-container">
+                    <div id="transactionsList">
+                        <!-- Transactions will be populated here -->
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Add Holding Modal -->
+    <div id="addHoldingModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Holding</h2>
+                <button class="close-btn" onclick="hideAddHoldingModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="addHoldingForm" class="modal-body">
+                <div class="form-group">
+                    <label for="account">Account *</label>
+                    <select id="account" name="accountId" required>
+                        <option value="">Select account...</option>
+                        <!-- Options will be populated dynamically -->
+                    </select>
+                    <small class="form-help">Don't see your account? <a href="#" onclick="showAccountsModal(); hideAddHoldingModal();">Manage accounts</a></small>
+                </div>
+                <div class="form-group">
+                    <label for="assetClass">Asset Class *</label>
+                    <select id="assetClass" name="assetClass" required>
+                        <option value="">Select asset class...</option>
+                        <!-- Options will be populated dynamically -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="symbol">Symbol/Ticker *</label>
+                    <input type="text" id="symbol" name="symbol" required placeholder="e.g., AAPL, MSFT, GLD">
+                </div>
+                <div class="form-group">
+                    <label for="name">Name/Description</label>
+                    <input type="text" id="name" name="name" placeholder="e.g., Apple Inc., SPDR Gold Trust">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="shares">Shares/Units *</label>
+                        <input type="number" id="shares" name="shares" required step="0.001" min="0" placeholder="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="purchasePrice">Purchase Price *</label>
+                        <input type="number" id="purchasePrice" name="purchasePrice" required step="1" min="0" placeholder="150.00">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="purchaseDate">Purchase Date</label>
+                    <input type="date" id="purchaseDate" name="purchaseDate">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="hideAddHoldingModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Holding
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Holding Modal -->
+    <div id="editHoldingModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Holding</h2>
+                <button class="close-btn" onclick="hideEditHoldingModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="editHoldingForm" class="modal-body">
+                <input type="hidden" id="editHoldingId">
+                <div class="form-group">
+                    <label for="editSymbol">Stock Symbol *</label>
+                    <input type="text" id="editSymbol" name="symbol" required readonly>
+                </div>
+                <div class="form-group">
+                    <label for="editName">Company Name</label>
+                    <input type="text" id="editName" name="name">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editShares">Shares *</label>
+                        <input type="number" id="editShares" name="shares" required step="0.001" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="editCurrentPrice">Current Price *</label>
+                        <input type="number" id="editCurrentPrice" name="currentPrice" required step="1" min="0">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="hideEditHoldingModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Update Holding
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Accounts Management Modal -->
+    <div id="accountsModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2>Manage Accounts</h2>
+                <button class="close-btn" onclick="hideAccountsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="accounts-header">
+                    <button class="btn btn-primary" onclick="showAddAccountForm()">
+                        <i class="fas fa-plus"></i> Add Account
+                    </button>
+                </div>
+                
+                <!-- Add Account Form -->
+                <form id="addAccountForm" class="add-account-form" style="display: none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="accountName">Account Name *</label>
+                            <input type="text" id="accountName" name="name" required placeholder="e.g., Fidelity Brokerage">
+                        </div>
+                        <div class="form-group">
+                            <label for="accountType">Account Type *</label>
+                            <select id="accountType" name="accountType" required>
+                                <option value="">Select type...</option>
+                                <!-- Options will be populated dynamically -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="accountProvider">Provider/Institution</label>
+                        <input type="text" id="accountProvider" name="provider" placeholder="e.g., Fidelity, Vanguard, Charles Schwab">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="hideAddAccountForm()">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add Account
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Accounts List -->
+                <div class="accounts-list" id="accountsList">
+                    <!-- Accounts will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Reconciliation Modal -->
+    <div id="reconciliationModal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2>Account Reconciliation</h2>
+                <button class="close-btn" onclick="hideReconciliationModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="reconciliation-help">
+                    <p><i class="fas fa-info-circle"></i> Enter the actual balance from your account statements to compare against your tracked holdings.</p>
+                </div>
+                <div class="reconciliation-table-container">
+                    <table class="reconciliation-table">
+                        <thead>
+                            <tr>
+                                <th>Account</th>
+                                <th>Account Type</th>
+                                <th>Holdings</th>
+                                <th>Calculated Total</th>
+                                <th>Actual Balance</th>
+                                <th>Variance</th>
+                                <th>%</th>
+                                <th>Last Reconciled</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reconciliationTableBody">
+                            <!-- Reconciliation data will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="reconciliationEmptyState" class="empty-state" style="display: none;">
+                    <i class="fas fa-balance-scale"></i>
+                    <h3>No Accounts to Reconcile</h3>
+                    <p>Add accounts first to start reconciling your portfolio.</p>
+                    <button class="btn btn-primary" onclick="hideReconciliationModal(); showAccountsModal();">
+                        <i class="fas fa-plus"></i> Add Account
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DCA Planning Modal -->
+    <div id="dcaPlanningModal" class="modal">
+        <div class="modal-content dca-modal">
+            <div class="modal-header">
+                <h2>DCA Planning & Goal Setting</h2>
+                <button class="close-btn" onclick="hideDcaPlanningModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Navigation Tabs -->
+                <div class="dca-tabs">
+                    <button class="dca-tab active" onclick="portfolioManager.showDcaTab('setup')">
+                        <i class="fas fa-cog"></i> Setup
+                    </button>
+                    <button class="dca-tab" onclick="portfolioManager.showDcaTab('allocations')">
+                        <i class="fas fa-chart-pie"></i> Asset Goals
+                    </button>
+                    <button class="dca-tab" onclick="portfolioManager.showDcaTab('holdings')">
+                        <i class="fas fa-list"></i> Holding Goals
+                    </button>
+                    <button class="dca-tab" onclick="portfolioManager.showDcaTab('schedule')">
+                        <i class="fas fa-calendar"></i> DCA Schedule
+                    </button>
+                </div>
+
+                <!-- Setup Tab -->
+                <div id="dcaSetupTab" class="dca-tab-content active">
+                    <div class="dca-setup-section">
+                        <h3>Investment Parameters</h3>
+                        <form id="dcaSetupForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="annualCashflow">Annual Investment Cashflow *</label>
+                                    <input type="number" id="annualCashflow" name="annualCashflow" required step="1" min="0" placeholder="24000">
+                                    <small class="form-help">Total amount you plan to invest annually</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="timeHorizon">Time Horizon (Years) *</label>
+                                    <input type="number" id="timeHorizon" name="timeHorizon" required step="1" min="1" max="50" placeholder="5">
+                                    <small class="form-help">How many years to reach your goals</small>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save & Continue
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Asset Allocations Tab -->
+                <div id="dcaAllocationsTab" class="dca-tab-content">
+                    <div class="dca-allocations-section">
+                        <h3>Target Asset Allocation Goals</h3>
+                        <div class="allocation-help">
+                            <p><i class="fas fa-info-circle"></i> Set your target asset allocation percentages. These will guide your DCA strategy.</p>
+                        </div>
+                        <div class="current-vs-target">
+                            <div class="allocation-comparison">
+                                <div class="current-allocation">
+                                    <h4>Current Allocation</h4>
+                                    <div id="currentAllocationChart"></div>
+                                </div>
+                                <div class="target-allocation">
+                                    <h4>Target Allocation</h4>
+                                    <div id="targetAllocationInputs"></div>
+                                    <div class="allocation-total">
+                                        <strong>Total: <span id="allocationTotal">0</span>%</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn btn-primary" onclick="portfolioManager.saveTargetAllocations()">
+                                <i class="fas fa-save"></i> Save Target Allocations
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Holdings Tab -->
+                <div id="dcaHoldingsTab" class="dca-tab-content">
+                    <div class="dca-holdings-section">
+                        <h3>Individual Holding Targets</h3>
+                        <div class="holdings-help">
+                            <p><i class="fas fa-info-circle"></i> Set specific dollar targets for individual holdings within each asset class.</p>
+                        </div>
+                        <div class="holding-targets-container">
+                            <div id="holdingTargetsByAssetClass"></div>
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn btn-secondary" onclick="portfolioManager.addNewHoldingTarget()">
+                                <i class="fas fa-plus"></i> Add New Holding Target
+                            </button>
+                            <button class="btn btn-primary" onclick="portfolioManager.saveHoldingTargets()">
+                                <i class="fas fa-save"></i> Save Holding Targets
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Schedule Tab -->
+                <div id="dcaScheduleTab" class="dca-tab-content">
+                    <div class="dca-schedule-section">
+                        <h3>DCA Investment Schedule</h3>
+                        
+                        <!-- Summary Cards -->
+                        <div class="dca-summary-cards">
+                            <div class="dca-summary-card">
+                                <div class="card-icon"><i class="fas fa-calendar-alt"></i></div>
+                                <div class="card-content">
+                                    <h4>Annual Investment</h4>
+                                    <p class="value" id="dcaAnnualAmount">$0</p>
+                                </div>
+                            </div>
+                            <div class="dca-summary-card">
+                                <div class="card-icon"><i class="fas fa-calendar-week"></i></div>
+                                <div class="card-content">
+                                    <h4>Monthly Investment</h4>
+                                    <p class="value" id="dcaMonthlyAmount">$0</p>
+                                </div>
+                            </div>
+                            <div class="dca-summary-card">
+                                <div class="card-icon"><i class="fas fa-calendar-day"></i></div>
+                                <div class="card-content">
+                                    <h4>Weekly Investment</h4>
+                                    <p class="value" id="dcaWeeklyAmount">$0</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- DCA Recommendations -->
+                        <div class="dca-recommendations">
+                            <h4>Asset Class DCA Schedule</h4>
+                            <div class="table-container">
+                                <table class="dca-schedule-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Asset Class</th>
+                                            <th>Current</th>
+                                            <th>Target %</th>
+                                            <th>Gap</th>
+                                            <th>Annual DCA</th>
+                                            <th>Monthly DCA</th>
+                                            <th>Weekly DCA</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dcaAssetClassSchedule">
+                                        <!-- Asset class DCA schedule will be populated here -->
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h4>Individual Holding DCA Schedule</h4>
+                            <div class="table-container">
+                                <table class="dca-schedule-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Symbol</th>
+                                            <th>Asset Class</th>
+                                            <th>Current Value</th>
+                                            <th>Target Value</th>
+                                            <th>Gap</th>
+                                            <th>Annual DCA</th>
+                                            <th>Monthly DCA</th>
+                                            <th>Weekly DCA</th>
+                                            <th>Shares/Week</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dcaHoldingSchedule">
+                                        <!-- Holding DCA schedule will be populated here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Asset Classes Management Modal -->
+    <div id="assetClassesModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2>Manage Asset Classes</h2>
+                <button class="close-btn" onclick="hideAssetClassesModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="asset-classes-header">
+                    <button class="btn btn-primary" onclick="showAddAssetClassForm()">
+                        <i class="fas fa-plus"></i> Add Asset Class
+                    </button>
+                </div>
+                
+                <!-- Add Asset Class Form -->
+                <form id="addAssetClassForm" class="add-asset-class-form" style="display: none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="assetClassName">Asset Class Name *</label>
+                            <input type="text" id="assetClassName" name="name" required placeholder="e.g., Technology Stocks">
+                        </div>
+                        <div class="form-group">
+                            <label for="assetClassColor">Color</label>
+                            <input type="color" id="assetClassColor" name="color" value="#667eea">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="assetClassDescription">Description</label>
+                        <input type="text" id="assetClassDescription" name="description" placeholder="e.g., Technology and growth stocks">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="hideAddAssetClassForm()">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add Asset Class
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Asset Classes List -->
+                <div class="asset-classes-list" id="assetClassesList">
+                    <!-- Asset classes will be populated here -->
+                </div>
+
+                <!-- Empty State -->
+                <div id="assetClassesEmptyState" class="empty-state" style="display: none;">
+                    <i class="fas fa-layer-group"></i>
+                    <h3>No Asset Classes</h3>
+                    <p>Create your first asset class to start organizing your investments.</p>
+                    <button class="btn btn-primary" onclick="showAddAssetClassForm()">
+                        <i class="fas fa-plus"></i> Add Asset Class
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Asset Class Modal -->
+    <div id="editAssetClassModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Asset Class</h2>
+                <button class="close-btn" onclick="hideEditAssetClassModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="editAssetClassForm" class="modal-body">
+                <input type="hidden" id="editAssetClassId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editAssetClassName">Asset Class Name *</label>
+                        <input type="text" id="editAssetClassName" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editAssetClassColor">Color</label>
+                        <input type="color" id="editAssetClassColor" name="color">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="editAssetClassDescription">Description</label>
+                    <input type="text" id="editAssetClassDescription" name="description">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="hideEditAssetClassModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Update Asset Class
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

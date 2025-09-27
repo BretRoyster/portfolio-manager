@@ -1,0 +1,177 @@
+{
+  "assetClasses": [
+    {
+      "id": "stocks",
+      "name": "Stocks",
+      "description": "Individual stocks and equity securities",
+      "color": "#667eea"
+    },
+    {
+      "id": "bonds",
+      "name": "Bonds",
+      "description": "Government and corporate bonds",
+      "color": "#38a169"
+    },
+    {
+      "id": "realestate",
+      "name": "Real Estate",
+      "description": "REITs and real estate investments",
+      "color": "#e53e3e"
+    },
+    {
+      "id": "commodities",
+      "name": "Commodities",
+      "description": "Gold, oil, and other commodities",
+      "color": "#d69e2e"
+    },
+    {
+      "id": "crypto",
+      "name": "Cryptocurrency",
+      "description": "Bitcoin, Ethereum, and other crypto",
+      "color": "#9f7aea"
+    },
+    {
+      "id": "cash",
+      "name": "Cash & Equivalents",
+      "description": "Money market funds and cash",
+      "color": "#718096"
+    },
+    {
+      "id": "somethingnew",
+      "name": "Something New",
+      "description": "VIOC",
+      "color": "#805ad5"
+    }
+  ],
+  "accountTypes": [
+    {
+      "id": "taxable",
+      "name": "Taxable Brokerage",
+      "description": "Regular investment accounts",
+      "icon": "fas fa-chart-line"
+    },
+    {
+      "id": "401k",
+      "name": "401(k)",
+      "description": "Employer-sponsored retirement plan",
+      "icon": "fas fa-building"
+    },
+    {
+      "id": "ira",
+      "name": "Traditional IRA",
+      "description": "Individual Retirement Account",
+      "icon": "fas fa-piggy-bank"
+    },
+    {
+      "id": "roth",
+      "name": "Roth IRA",
+      "description": "Tax-free retirement account",
+      "icon": "fas fa-coins"
+    },
+    {
+      "id": "403b",
+      "name": "403(b)",
+      "description": "Non-profit retirement plan",
+      "icon": "fas fa-graduation-cap"
+    },
+    {
+      "id": "hsa",
+      "name": "HSA",
+      "description": "Health Savings Account",
+      "icon": "fas fa-heartbeat"
+    },
+    {
+      "id": "529",
+      "name": "529 Plan",
+      "description": "Education savings plan",
+      "icon": "fas fa-university"
+    },
+    {
+      "id": "other",
+      "name": "Other",
+      "description": "Other account types",
+      "icon": "fas fa-folder"
+    }
+  ],
+  "accounts": [
+    {
+      "id": "1758930484788",
+      "name": "AMEX 401(k)",
+      "accountType": "401k",
+      "provider": "",
+      "createdDate": "2025-09-26",
+      "actualTotal": 144,
+      "lastReconciled": "2025-09-27T14:08:01.327Z"
+    }
+  ],
+  "holdings": [
+    {
+      "id": "1758930512937",
+      "symbol": "BTC",
+      "name": "BTC thing",
+      "assetClass": "crypto",
+      "accountId": "1758930484788",
+      "shares": 1,
+      "purchasePrice": 150,
+      "purchaseDate": "2025-09-26",
+      "currentPrice": 150.05,
+      "totalValue": 150.05,
+      "gainLoss": 0.05000000000001137,
+      "gainLossPercent": 0.03333333333334091
+    }
+  ],
+  "transactions": [
+    {
+      "id": "1758930512937_tx",
+      "type": "buy",
+      "symbol": "BTC",
+      "shares": 1,
+      "price": 150,
+      "date": "2025-09-26",
+      "total": 150
+    }
+  ],
+  "totalValue": 0,
+  "totalGainLoss": 0,
+  "dcaPlan": {
+    "annualCashflow": 10000,
+    "timeHorizonYears": 1,
+    "targetAllocations": [
+      {
+        "assetClassId": "stocks",
+        "targetPercent": 100
+      }
+    ],
+    "holdingTargets": [
+      {
+        "holdingId": "target_1758984434811",
+        "symbol": "AAPL",
+        "name": "Bret Royster",
+        "assetClassId": "bonds",
+        "targetAmount": 2222,
+        "expectedPrice": 0,
+        "isFutureHolding": true
+      },
+      {
+        "holdingId": "target_1758984513716",
+        "symbol": "ETH",
+        "name": "ETH",
+        "assetClassId": "crypto",
+        "targetAmount": 3453,
+        "expectedPrice": 3,
+        "isFutureHolding": true
+      },
+      {
+        "holdingId": "target_1758984641276",
+        "symbol": "AAPL",
+        "name": "AAPL",
+        "assetClassId": "bonds",
+        "targetAmount": 1,
+        "expectedPrice": 1,
+        "isFutureHolding": true
+      }
+    ],
+    "createdDate": "2025-09-27T14:31:53.859Z",
+    "lastUpdated": "2025-09-27T14:50:41.280Z"
+  }
+}
