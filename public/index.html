@@ -305,6 +305,46 @@
         </div>
     </div>
 
+    <!-- Edit Account Modal -->
+    <div id="editAccountModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Account</h2>
+                <button class="close-btn" onclick="hideEditAccountModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="editAccountForm" class="modal-body">
+                <input type="hidden" id="editAccountId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editAccountName">Account Name *</label>
+                        <input type="text" id="editAccountName" name="name" required placeholder="e.g., Fidelity Brokerage">
+                    </div>
+                    <div class="form-group">
+                        <label for="editAccountType">Account Type *</label>
+                        <select id="editAccountType" name="accountType" required>
+                            <option value="">Select type...</option>
+                            <!-- Options will be populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="editAccountProvider">Provider/Institution</label>
+                    <input type="text" id="editAccountProvider" name="provider" placeholder="e.g., Fidelity, Vanguard, Charles Schwab">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="hideEditAccountModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Update Account
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Account Reconciliation Modal -->
     <div id="reconciliationModal" class="modal">
         <div class="modal-content" style="max-width: 900px;">
@@ -381,18 +421,71 @@
                     <div class="dca-setup-section">
                         <h3>Investment Parameters</h3>
                         <form id="dcaSetupForm">
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="annualCashflow">Annual Investment Cashflow *</label>
-                                    <input type="number" id="annualCashflow" name="annualCashflow" required step="1" min="0" placeholder="24000">
-                                    <small class="form-help">Total amount you plan to invest annually</small>
+                            <div class="form-section">
+                                <h4>Employment & 401(k) Details</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="annualEmploymentIncome">Annual Employment Income *</label>
+                                        <input type="number" id="annualEmploymentIncome" name="annualEmploymentIncome" required step="1" min="0" placeholder="100000">
+                                        <small class="form-help">Your gross annual salary</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="employer401kMatch">401(k) Employer Match % *</label>
+                                        <input type="number" id="employer401kMatch" name="employer401kMatch" required step="0.1" min="0" max="100" placeholder="50">
+                                        <small class="form-help">Employer match as % of your contribution (e.g., 50 for 50% match)</small>
+                                    </div>
                                 </div>
-                                <div class="form-group">
-                                    <label for="timeHorizon">Time Horizon (Years) *</label>
-                                    <input type="number" id="timeHorizon" name="timeHorizon" required step="1" min="1" max="50" placeholder="5">
-                                    <small class="form-help">How many years to reach your goals</small>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="employee401kPercent">401(k) Employee Contribution % *</label>
+                                        <input type="number" id="employee401kPercent" name="employee401kPercent" required step="0.1" min="0" max="100" placeholder="15">
+                                        <small class="form-help">Your 401(k) contribution percentage (e.g., 15 for 15%)</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="taxableInvestmentCashflow">Annual Taxable Investment Cashflow *</label>
+                                        <input type="number" id="taxableInvestmentCashflow" name="taxableInvestmentCashflow" required step="1" min="0" placeholder="12000">
+                                        <small class="form-help">Additional annual amount for taxable investments</small>
+                                    </div>
                                 </div>
                             </div>
+                            
+                            <div class="form-section">
+                                <h4>Investment Timeline</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="timeHorizon">Time Horizon (Years) *</label>
+                                        <input type="number" id="timeHorizon" name="timeHorizon" required step="1" min="1" max="50" placeholder="5">
+                                        <small class="form-help">How many years to reach your goals</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="calculated-totals">
+                                <h4>Calculated Annual Investment Totals</h4>
+                                <div class="calculation-display">
+                                    <div class="calc-item">
+                                        <label>401(k) Employee Contribution:</label>
+                                        <span id="calc401kEmployee">$0</span>
+                                    </div>
+                                    <div class="calc-item">
+                                        <label>401(k) Employer Match:</label>
+                                        <span id="calc401kEmployer">$0</span>
+                                    </div>
+                                    <div class="calc-item">
+                                        <label>Total 401(k) Cashflow:</label>
+                                        <span id="calcTotal401k">$0</span>
+                                    </div>
+                                    <div class="calc-item">
+                                        <label>Taxable Investment Cashflow:</label>
+                                        <span id="calcTaxableCashflow">$0</span>
+                                    </div>
+                                    <div class="calc-item total">
+                                        <label>Total Annual Investment Cashflow:</label>
+                                        <span id="calcTotalCashflow">$0</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <div class="form-actions">
                                 <button type="submit" class="btn btn-primary">
                                     <i class="fas fa-save"></i> Save & Continue

@@ -33,6 +33,12 @@ class PortfolioManager {
         // Add account form
         document.getElementById('addAccountForm').addEventListener('submit', this.handleAddAccount.bind(this));
         
+        // Edit account form
+        const editAccountForm = document.getElementById('editAccountForm');
+        if (editAccountForm) {
+            editAccountForm.addEventListener('submit', this.handleEditAccount.bind(this));
+        }
+        
         // Modal click outside to close
         document.getElementById('addHoldingModal').addEventListener('click', (e) => {
             if (e.target.id === 'addHoldingModal') {
@@ -51,6 +57,16 @@ class PortfolioManager {
                 this.hideAccountsModal();
             }
         });
+
+        // Add event listener for edit account modal if it exists
+        const editAccountModal = document.getElementById('editAccountModal');
+        if (editAccountModal) {
+            editAccountModal.addEventListener('click', (e) => {
+                if (e.target.id === 'editAccountModal') {
+                    this.hideEditAccountModal();
+                }
+            });
+        }
 
         // Add event listener for reconciliation modal if it exists
         const reconciliationModal = document.getElementById('reconciliationModal');
@@ -96,6 +112,14 @@ class PortfolioManager {
         const dcaSetupForm = document.getElementById('dcaSetupForm');
         if (dcaSetupForm) {
             dcaSetupForm.addEventListener('submit', this.handleDcaSetup.bind(this));
+            
+            // Add real-time calculation updates
+            ['annualEmploymentIncome', 'employer401kMatch', 'employee401kPercent', 'taxableInvestmentCashflow'].forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.addEventListener('input', this.updateDcaCalculations.bind(this));
+                }
+            });
         }
 
         // Asset class forms
@@ -119,6 +143,7 @@ class PortfolioManager {
                 this.hideDcaPlanningModal();
                 this.hideAssetClassesModal();
                 this.hideEditAssetClassModal();
+                this.hideEditAccountModal();
             }
         });
     }
@@ -751,7 +776,10 @@ class PortfolioManager {
                         </div>
                     </div>
                     <div class="account-actions">
-                        <button class="btn btn-danger btn-small" onclick="portfolioManager.deleteAccount('${account.id}')">
+                        <button class="btn btn-secondary btn-small" onclick="portfolioManager.editAccount('${account.id}')" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-danger btn-small" onclick="portfolioManager.deleteAccount('${account.id}')" title="Delete">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -782,6 +810,64 @@ class PortfolioManager {
             } catch (error) {
                 this.showNotification('Failed to delete account', 'error');
             }
+        }
+    }
+
+    editAccount(accountId) {
+        const account = this.accounts.find(a => a.id === accountId);
+        if (!account) return;
+
+        document.getElementById('editAccountId').value = account.id;
+        document.getElementById('editAccountName').value = account.name;
+        document.getElementById('editAccountProvider').value = account.provider || '';
+
+        // Populate account type options with the current type selected
+        this.populateEditAccountTypeOptions(account.accountType);
+
+        this.showEditAccountModal();
+    }
+
+    showEditAccountModal() {
+        document.getElementById('editAccountModal').classList.add('show');
+        document.getElementById('editAccountName').focus();
+    }
+
+    hideEditAccountModal() {
+        document.getElementById('editAccountModal').classList.remove('show');
+        document.getElementById('editAccountForm').reset();
+    }
+
+    populateEditAccountTypeOptions(selectedAccountType) {
+        const select = document.getElementById('editAccountType');
+        select.innerHTML = '<option value="">Select type...</option>' + 
+            this.accountTypes.map(at => 
+                `<option value="${at.id}" ${at.id === selectedAccountType ? 'selected' : ''}>${at.name}</option>`
+            ).join('');
+    }
+
+    async handleEditAccount(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        const accountId = document.getElementById('editAccountId').value;
+        const updateData = {
+            name: formData.get('name'),
+            accountType: formData.get('accountType'),
+            provider: formData.get('provider')
+        };
+
+        try {
+            await this.apiCall(`/accounts/${accountId}`, {
+                method: 'PUT',
+                body: JSON.stringify(updateData)
+            });
+
+            this.hideEditAccountModal();
+            await this.loadData();
+            this.renderAccounts();
+            this.showNotification('Account updated successfully!', 'success');
+        } catch (error) {
+            this.showNotification('Failed to update account', 'error');
         }
     }
 
@@ -1030,8 +1116,14 @@ class PortfolioManager {
 
     populateDcaSetupForm() {
         if (this.dcaPlan) {
-            document.getElementById('annualCashflow').value = this.dcaPlan.annualCashflow || '';
+            document.getElementById('annualEmploymentIncome').value = this.dcaPlan.annualEmploymentIncome || '';
+            document.getElementById('employer401kMatch').value = this.dcaPlan.employer401kMatch || '';
+            document.getElementById('employee401kPercent').value = this.dcaPlan.employee401kPercent || '';
+            document.getElementById('taxableInvestmentCashflow').value = this.dcaPlan.taxableInvestmentCashflow || '';
             document.getElementById('timeHorizon').value = this.dcaPlan.timeHorizonYears || '';
+            
+            // Update calculations
+            this.updateDcaCalculations();
         }
     }
 
@@ -1039,8 +1131,27 @@ class PortfolioManager {
         e.preventDefault();
         
         const formData = new FormData(e.target);
+        const annualEmploymentIncome = parseFloat(formData.get('annualEmploymentIncome'));
+        const employer401kMatch = parseFloat(formData.get('employer401kMatch'));
+        const employee401kPercent = parseFloat(formData.get('employee401kPercent'));
+        const taxableInvestmentCashflow = parseFloat(formData.get('taxableInvestmentCashflow'));
+        
+        // Calculate the total annual cashflow
+        const employee401kContribution = annualEmploymentIncome * (employee401kPercent / 100);
+        // Employer match is applied to employee contribution, not total income
+        const employer401kContribution = employee401kContribution * (employer401kMatch / 100);
+        const total401kCashflow = employee401kContribution + employer401kContribution;
+        const totalAnnualCashflow = total401kCashflow + taxableInvestmentCashflow;
+        
         const setupData = {
-            annualCashflow: parseFloat(formData.get('annualCashflow')),
+            annualEmploymentIncome,
+            employer401kMatch,
+            employee401kPercent,
+            taxableInvestmentCashflow,
+            employee401kContribution,
+            employer401kContribution,
+            total401kCashflow,
+            annualCashflow: totalAnnualCashflow, // Keep for backward compatibility
             timeHorizonYears: parseInt(formData.get('timeHorizon'))
         };
 
@@ -1055,6 +1166,28 @@ class PortfolioManager {
         } catch (error) {
             this.showNotification('Failed to save DCA setup', 'error');
         }
+    }
+
+    updateDcaCalculations() {
+        // Get input values
+        const annualEmploymentIncome = parseFloat(document.getElementById('annualEmploymentIncome').value) || 0;
+        const employer401kMatch = parseFloat(document.getElementById('employer401kMatch').value) || 0;
+        const employee401kPercent = parseFloat(document.getElementById('employee401kPercent').value) || 0;
+        const taxableInvestmentCashflow = parseFloat(document.getElementById('taxableInvestmentCashflow').value) || 0;
+        
+        // Calculate values
+        const employee401kContribution = annualEmploymentIncome * (employee401kPercent / 100);
+        // Employer match is applied to employee contribution, not total income
+        const employer401kContribution = employee401kContribution * (employer401kMatch / 100);
+        const total401kCashflow = employee401kContribution + employer401kContribution;
+        const totalAnnualCashflow = total401kCashflow + taxableInvestmentCashflow;
+        
+        // Update display elements
+        document.getElementById('calc401kEmployee').textContent = this.formatCurrency(employee401kContribution);
+        document.getElementById('calc401kEmployer').textContent = this.formatCurrency(employer401kContribution);
+        document.getElementById('calcTotal401k').textContent = this.formatCurrency(total401kCashflow);
+        document.getElementById('calcTaxableCashflow').textContent = this.formatCurrency(taxableInvestmentCashflow);
+        document.getElementById('calcTotalCashflow').textContent = this.formatCurrency(totalAnnualCashflow);
     }
 
     renderAllocationComparison() {
@@ -1234,11 +1367,17 @@ class PortfolioManager {
                                 </div>
                             `;
                         }).join('')}
-                        ${futureTargets.map(target => `
+                        ${futureTargets.map(target => {
+                            const account = this.accounts.find(acc => acc.id === target.accountId);
+                            const accountType = account ? this.accountTypes.find(at => at.id === account.accountType) : null;
+                            const accountInfo = account ? `${account.name} (${accountType?.name || account.accountType})` : 'No account selected';
+                            
+                            return `
                             <div class="holding-target-item future-holding">
                                 <div class="holding-info">
                                     <strong>${target.symbol} <span class="future-badge">PLANNED</span></strong>
                                     <span>${target.name}</span>
+                                    <small>Account: ${accountInfo}</small>
                                     <small>Current: $0.00 (Future holding)</small>
                                 </div>
                                 <div class="target-input-group">
@@ -1255,7 +1394,8 @@ class PortfolioManager {
                                     </button>
                                 </div>
                             </div>
-                        `).join('')}
+                            `;
+                        }).join('')}
                         ${holdings.length === 0 && futureTargets.length === 0 ? '<p class="no-holdings">No holdings or targets in this asset class</p>' : ''}
                     </div>
                 </div>
@@ -1279,6 +1419,17 @@ class PortfolioManager {
                         </button>
                     </div>
                     <form id="addHoldingTargetForm" class="modal-body">
+                        <div class="form-group">
+                            <label for="newTargetAccount">Account *</label>
+                            <select id="newTargetAccount" name="accountId" required>
+                                <option value="">Select account...</option>
+                                ${this.accounts.map(acc => {
+                                    const accountType = this.accountTypes.find(at => at.id === acc.accountType);
+                                    return `<option value="${acc.id}">${acc.name} (${accountType?.name || acc.accountType})</option>`;
+                                }).join('')}
+                            </select>
+                            <small class="form-help">Account where this holding will be purchased. Don't see your account? <a href="#" onclick="portfolioManager.hideAddHoldingTargetModal(); portfolioManager.showAccountsModal();">Manage accounts</a></small>
+                        </div>
                         <div class="form-group">
                             <label for="newTargetAssetClass">Asset Class *</label>
                             <select id="newTargetAssetClass" name="assetClass" required>
@@ -1353,6 +1504,7 @@ class PortfolioManager {
             symbol: formData.get('symbol').toUpperCase(),
             name: formData.get('name') || formData.get('symbol').toUpperCase(),
             assetClassId: formData.get('assetClass'),
+            accountId: formData.get('accountId'),
             targetAmount: parseFloat(formData.get('targetAmount')),
             expectedPrice: parseFloat(formData.get('expectedPrice')) || 0,
             isFutureHolding: true // Flag to indicate this is a planned holding
@@ -1483,22 +1635,32 @@ class PortfolioManager {
         document.getElementById('dcaAnnualAmount').textContent = this.formatCurrency(summary.annualCashflow);
         document.getElementById('dcaMonthlyAmount').textContent = this.formatCurrency(summary.monthlyCashflow);
         document.getElementById('dcaWeeklyAmount').textContent = this.formatCurrency(summary.weeklyCashflow);
+        
+        // Update breakdown information if available
+        if (this.dcaPlan && this.dcaPlan.total401kCashflow) {
+            // Add breakdown info to the summary cards section if not already there
+            this.updateCashflowBreakdown();
+        }
 
         // Render asset class schedule
         const assetClassTBody = document.getElementById('dcaAssetClassSchedule');
         assetClassTBody.innerHTML = assetClasses.map(asset => `
-            <tr>
+            <tr class="${asset.constraint ? 'constrained-row' : ''}">
                 <td>
                     <span class="asset-class-badge" style="background-color: ${asset.assetClassColor}">
                         ${asset.assetClassName}
                     </span>
+                    ${asset.has401kHoldings ? '<span class="account-badge">401(k)</span>' : ''}
                 </td>
                 <td>${this.formatCurrency(asset.currentValue)} (${this.formatPercentage(asset.currentPercent)})</td>
                 <td>${this.formatPercentage(asset.targetPercent)}</td>
                 <td class="${asset.gapAmount >= 0 ? 'positive' : 'negative'}">
                     ${this.formatCurrency(asset.gapAmount)}
                 </td>
-                <td class="dca-amount">${this.formatCurrency(asset.annualDca)}</td>
+                <td class="dca-amount">
+                    ${this.formatCurrency(asset.annualDca)}
+                    ${asset.constraint ? `<div class="constraint-warning" title="${asset.constraint.message}"><i class="fas fa-exclamation-triangle"></i></div>` : ''}
+                </td>
                 <td class="dca-amount">${this.formatCurrency(asset.monthlyDca)}</td>
                 <td class="dca-amount">${this.formatCurrency(asset.weeklyDca)}</td>
             </tr>
@@ -1511,10 +1673,11 @@ class PortfolioManager {
             const isFuture = holding.isFutureHolding;
             
             return `
-                <tr class="${isFuture ? 'future-holding-row' : ''}">
+                <tr class="${isFuture ? 'future-holding-row' : ''} ${holding.constraint ? 'constrained-row' : ''}">
                     <td class="symbol">
                         ${holding.symbol}
                         ${isFuture ? '<span class="future-badge">PLANNED</span>' : ''}
+                        ${holding.is401kHolding ? '<span class="account-badge">401(k)</span>' : ''}
                     </td>
                     <td>
                         <span class="asset-class-badge" style="background-color: ${this.getAssetClassColor(holding.assetClassId)}">
@@ -1526,7 +1689,10 @@ class PortfolioManager {
                     <td class="${holding.gapAmount >= 0 ? 'positive' : 'negative'}">
                         ${this.formatCurrency(holding.gapAmount)}
                     </td>
-                    <td class="dca-amount">${this.formatCurrency(holding.annualDca)}</td>
+                    <td class="dca-amount">
+                        ${this.formatCurrency(holding.annualDca)}
+                        ${holding.constraint ? `<div class="constraint-warning" title="${holding.constraint.message}"><i class="fas fa-exclamation-triangle"></i></div>` : ''}
+                    </td>
                     <td class="dca-amount">${this.formatCurrency(holding.monthlyDca)}</td>
                     <td class="dca-amount">${this.formatCurrency(holding.weeklyDca)}</td>
                     <td>
@@ -1536,6 +1702,50 @@ class PortfolioManager {
                 </tr>
             `;
         }).join('');
+    }
+
+    updateCashflowBreakdown() {
+        // Check if breakdown already exists
+        let breakdownContainer = document.getElementById('cashflowBreakdown');
+        if (!breakdownContainer) {
+            // Create the breakdown container and insert it after the summary cards
+            const summaryCards = document.querySelector('.dca-summary-cards');
+            if (summaryCards) {
+                const breakdownHtml = `
+                    <div id="cashflowBreakdown" class="cashflow-breakdown">
+                        <h4>Annual Cashflow Breakdown</h4>
+                        <div class="breakdown-grid">
+                            <div class="breakdown-item">
+                                <label>401(k) Employee:</label>
+                                <span id="breakdown401kEmployee">$0</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <label>401(k) Employer Match:</label>
+                                <span id="breakdown401kEmployer">$0</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <label>Total 401(k):</label>
+                                <span id="breakdownTotal401k">$0</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <label>Taxable Investments:</label>
+                                <span id="breakdownTaxable">$0</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                summaryCards.insertAdjacentHTML('afterend', breakdownHtml);
+                breakdownContainer = document.getElementById('cashflowBreakdown');
+            }
+        }
+        
+        // Update the breakdown values
+        if (breakdownContainer && this.dcaPlan) {
+            document.getElementById('breakdown401kEmployee').textContent = this.formatCurrency(this.dcaPlan.employee401kContribution || 0);
+            document.getElementById('breakdown401kEmployer').textContent = this.formatCurrency(this.dcaPlan.employer401kContribution || 0);
+            document.getElementById('breakdownTotal401k').textContent = this.formatCurrency(this.dcaPlan.total401kCashflow || 0);
+            document.getElementById('breakdownTaxable').textContent = this.formatCurrency(this.dcaPlan.taxableInvestmentCashflow || 0);
+        }
     }
 
     getAssetClassColor(assetClassId) {
@@ -1827,6 +2037,10 @@ function hideAddAssetClassForm() {
 
 function hideEditAssetClassModal() {
     portfolioManager.hideEditAssetClassModal();
+}
+
+function hideEditAccountModal() {
+    portfolioManager.hideEditAccountModal();
 }
 
 // Initialize the portfolio manager when DOM is loaded

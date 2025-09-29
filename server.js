@@ -6,7 +6,7 @@ const path = require('path');
 
 const app = express();
 const PORT = 3000;
-const DATA_FILE = './data/portfolio.json';
+const DATA_FILE = '/MegaSync/!finances/portfolio-manager-data/portfolio.json';
 
 // Middleware
 app.use(cors());
@@ -432,6 +432,65 @@ app.post('/api/accounts', async (req, res) => {
   }
 });
 
+// Update account actual balance (more specific route - must come before general update)
+app.put('/api/accounts/:id/balance', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { actualTotal } = req.body;
+    
+    if (typeof actualTotal !== 'number') {
+      return res.status(400).json({ error: 'Actual total must be a number' });
+    }
+
+    const data = await readPortfolioData();
+    const accountIndex = data.accounts.findIndex(a => a.id === id);
+    
+    if (accountIndex === -1) {
+      return res.status(404).json({ error: 'Account not found' });
+    }
+
+    data.accounts[accountIndex].actualTotal = actualTotal;
+    data.accounts[accountIndex].lastReconciled = new Date().toISOString();
+
+    await writePortfolioData(data);
+    res.json(data.accounts[accountIndex]);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update account balance' });
+  }
+});
+
+// Update account (general update route)
+app.put('/api/accounts/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, accountType, provider } = req.body;
+    
+    if (!name || !accountType) {
+      return res.status(400).json({ error: 'Account name and type are required' });
+    }
+
+    const data = await readPortfolioData();
+    const accountIndex = data.accounts.findIndex(a => a.id === id);
+    
+    if (accountIndex === -1) {
+      return res.status(404).json({ error: 'Account not found' });
+    }
+
+    // Update account
+    data.accounts[accountIndex] = {
+      ...data.accounts[accountIndex],
+      name,
+      accountType,
+      provider: provider || ''
+    };
+
+    await writePortfolioData(data);
+    res.json(data.accounts[accountIndex]);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update account' });
+  }
+});
+
 // Delete account
 app.delete('/api/accounts/:id', async (req, res) => {
   try {
@@ -503,32 +562,6 @@ app.get('/api/accounts/reconciliation', async (req, res) => {
   }
 });
 
-// Update account actual balance
-app.put('/api/accounts/:id/balance', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { actualTotal } = req.body;
-    
-    if (typeof actualTotal !== 'number') {
-      return res.status(400).json({ error: 'Actual total must be a number' });
-    }
-
-    const data = await readPortfolioData();
-    const accountIndex = data.accounts.findIndex(a => a.id === id);
-    
-    if (accountIndex === -1) {
-      return res.status(404).json({ error: 'Account not found' });
-    }
-
-    data.accounts[accountIndex].actualTotal = actualTotal;
-    data.accounts[accountIndex].lastReconciled = new Date().toISOString();
-
-    await writePortfolioData(data);
-    res.json(data.accounts[accountIndex]);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to update account balance' });
-  }
-});
 
 // DCA Planning Endpoints
 
@@ -553,7 +586,19 @@ app.get('/api/dca/plan', async (req, res) => {
 // Update DCA plan
 app.put('/api/dca/plan', async (req, res) => {
   try {
-    const { annualCashflow, timeHorizonYears, targetAllocations, holdingTargets } = req.body;
+    const { 
+      annualCashflow, 
+      timeHorizonYears, 
+      targetAllocations, 
+      holdingTargets,
+      annualEmploymentIncome,
+      employer401kMatch,
+      employee401kPercent,
+      taxableInvestmentCashflow,
+      employee401kContribution,
+      employer401kContribution,
+      total401kCashflow
+    } = req.body;
     
     const data = await readPortfolioData();
     const now = new Date().toISOString();
@@ -582,6 +627,29 @@ app.put('/api/dca/plan', async (req, res) => {
     }
     if (holdingTargets !== undefined) {
       data.dcaPlan.holdingTargets = holdingTargets;
+    }
+    
+    // Update new cashflow breakdown fields
+    if (annualEmploymentIncome !== undefined) {
+      data.dcaPlan.annualEmploymentIncome = parseFloat(annualEmploymentIncome);
+    }
+    if (employer401kMatch !== undefined) {
+      data.dcaPlan.employer401kMatch = parseFloat(employer401kMatch);
+    }
+    if (employee401kPercent !== undefined) {
+      data.dcaPlan.employee401kPercent = parseFloat(employee401kPercent);
+    }
+    if (taxableInvestmentCashflow !== undefined) {
+      data.dcaPlan.taxableInvestmentCashflow = parseFloat(taxableInvestmentCashflow);
+    }
+    if (employee401kContribution !== undefined) {
+      data.dcaPlan.employee401kContribution = parseFloat(employee401kContribution);
+    }
+    if (employer401kContribution !== undefined) {
+      data.dcaPlan.employer401kContribution = parseFloat(employer401kContribution);
+    }
+    if (total401kCashflow !== undefined) {
+      data.dcaPlan.total401kCashflow = parseFloat(total401kCashflow);
     }
     
     data.dcaPlan.lastUpdated = now;
@@ -630,6 +698,32 @@ app.get('/api/dca/recommendations', async (req, res) => {
       const gapAmount = targetValue - currentValue;
       const totalDcaNeeded = Math.max(0, gapAmount);
       
+      // Determine if this asset class includes 401k holdings
+      const has401kHoldings = data.holdings.some(h => 
+        h.assetClass === target.assetClassId && h.accountId && 
+        data.accounts.find(acc => acc.id === h.accountId && acc.accountType === '401k')
+      );
+      
+      // Constrain DCA for 401k investments
+      let constrainedDcaNeeded = totalDcaNeeded;
+      let constraint = null;
+      
+      if (has401kHoldings && dcaPlan.total401kCashflow) {
+        // Calculate the maximum 401k DCA available over the time horizon
+        const max401kDcaTotal = dcaPlan.total401kCashflow * dcaPlan.timeHorizonYears;
+        
+        // If the needed DCA exceeds available 401k cashflow, constrain it
+        if (totalDcaNeeded > max401kDcaTotal) {
+          constrainedDcaNeeded = max401kDcaTotal;
+          constraint = {
+            type: '401k_limit',
+            message: `Limited by 401(k) annual cashflow of ${dcaPlan.total401kCashflow.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`,
+            unconstrained: totalDcaNeeded,
+            maxAvailable: max401kDcaTotal
+          };
+        }
+      }
+      
       return {
         assetClassId: target.assetClassId,
         assetClassName: assetClass?.name || target.assetClassId,
@@ -639,10 +733,12 @@ app.get('/api/dca/recommendations', async (req, res) => {
         targetPercent: target.targetPercent,
         targetValue,
         gapAmount,
-        totalDcaNeeded,
-        annualDca: totalDcaNeeded / dcaPlan.timeHorizonYears,
-        monthlyDca: totalDcaNeeded / (dcaPlan.timeHorizonYears * 12),
-        weeklyDca: totalDcaNeeded / (dcaPlan.timeHorizonYears * 52)
+        totalDcaNeeded: constrainedDcaNeeded,
+        annualDca: constrainedDcaNeeded / dcaPlan.timeHorizonYears,
+        monthlyDca: constrainedDcaNeeded / (dcaPlan.timeHorizonYears * 12),
+        weeklyDca: constrainedDcaNeeded / (dcaPlan.timeHorizonYears * 52),
+        constraint,
+        has401kHoldings
       };
     });
 
@@ -654,6 +750,36 @@ app.get('/api/dca/recommendations', async (req, res) => {
       const gapAmount = targetValue - currentValue;
       const totalDcaNeeded = Math.max(0, gapAmount);
       
+      // Check if this holding is in a 401k account
+      let is401kHolding = false;
+      if (holding && holding.accountId) {
+        // For existing holdings
+        is401kHolding = data.accounts.find(acc => acc.id === holding.accountId && acc.accountType === '401k');
+      } else if (target.isFutureHolding && target.accountId) {
+        // For future holdings, check the account specified in the target
+        is401kHolding = data.accounts.find(acc => acc.id === target.accountId && acc.accountType === '401k');
+      }
+      
+      // Constrain DCA for 401k holdings
+      let constrainedDcaNeeded = totalDcaNeeded;
+      let constraint = null;
+      
+      if (is401kHolding && dcaPlan.total401kCashflow) {
+        // Calculate the maximum 401k DCA available over the time horizon
+        const max401kDcaTotal = dcaPlan.total401kCashflow * dcaPlan.timeHorizonYears;
+        
+        // If the needed DCA exceeds available 401k cashflow, constrain it
+        if (totalDcaNeeded > max401kDcaTotal) {
+          constrainedDcaNeeded = max401kDcaTotal;
+          constraint = {
+            type: '401k_limit',
+            message: `Limited by 401(k) annual cashflow of ${dcaPlan.total401kCashflow.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`,
+            unconstrained: totalDcaNeeded,
+            maxAvailable: max401kDcaTotal
+          };
+        }
+      }
+      
       return {
         holdingId: target.holdingId,
         symbol: holding?.symbol || target.symbol,
@@ -662,12 +788,14 @@ app.get('/api/dca/recommendations', async (req, res) => {
         currentValue,
         targetValue,
         gapAmount,
-        totalDcaNeeded,
-        annualDca: totalDcaNeeded / dcaPlan.timeHorizonYears,
-        monthlyDca: totalDcaNeeded / (dcaPlan.timeHorizonYears * 12),
-        weeklyDca: totalDcaNeeded / (dcaPlan.timeHorizonYears * 52),
+        totalDcaNeeded: constrainedDcaNeeded,
+        annualDca: constrainedDcaNeeded / dcaPlan.timeHorizonYears,
+        monthlyDca: constrainedDcaNeeded / (dcaPlan.timeHorizonYears * 12),
+        weeklyDca: constrainedDcaNeeded / (dcaPlan.timeHorizonYears * 52),
         currentPrice: holding?.currentPrice || target.expectedPrice || 0,
-        isFutureHolding: target.isFutureHolding || false
+        isFutureHolding: target.isFutureHolding || false,
+        is401kHolding,
+        constraint
       };
     });
 
