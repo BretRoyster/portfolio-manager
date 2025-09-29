@@ -39,18 +39,19 @@ class PortfolioManager {
             editAccountForm.addEventListener('submit', this.handleEditAccount.bind(this));
         }
         
-        // Modal click outside to close
-        document.getElementById('addHoldingModal').addEventListener('click', (e) => {
-            if (e.target.id === 'addHoldingModal') {
-                this.hideAddHoldingModal();
-            }
-        });
+        // Modal click outside to close (disabled for addHoldingModal)
+        // document.getElementById('addHoldingModal').addEventListener('click', (e) => {
+        //     if (e.target.id === 'addHoldingModal') {
+        //         this.hideAddHoldingModal();
+        //     }
+        // });
         
-        document.getElementById('editHoldingModal').addEventListener('click', (e) => {
-            if (e.target.id === 'editHoldingModal') {
-                this.hideEditHoldingModal();
-            }
-        });
+        // Modal click outside to close (disabled for editHoldingModal)
+        // document.getElementById('editHoldingModal').addEventListener('click', (e) => {
+        //     if (e.target.id === 'editHoldingModal') {
+        //         this.hideEditHoldingModal();
+        //     }
+        // });
 
         document.getElementById('accountsModal').addEventListener('click', (e) => {
             if (e.target.id === 'accountsModal') {
@@ -274,7 +275,12 @@ class PortfolioManager {
             
             return `
                 <tr>
-                    <td><span class="account-badge">${accountName}</span></td>
+                    <td>
+                        ${account?.websiteUrl ? 
+                            `<span class="account-badge account-badge-link" onclick="window.open('${account.websiteUrl}', '_blank')" title="Open ${accountName} Account">${accountName}</span>` : 
+                            `<span class="account-badge">${accountName}</span>`
+                        }
+                    </td>
                     <td><span class="asset-class-badge" style="background-color: ${assetClass?.color || '#718096'}">${assetClassName}</span></td>
                     <td class="symbol">${holding.symbol}</td>
                     <td>${holding.name}</td>
@@ -343,13 +349,31 @@ class PortfolioManager {
     populateAccountOptions() {
         const select = document.getElementById('account');
         select.innerHTML = '<option value="">Select account...</option>' + 
-            this.accounts.map(acc => `<option value="${acc.id}">${acc.name}</option>`).join('');
+            this.accounts.map(acc => {
+                const accountType = this.accountTypes.find(at => at.id === acc.accountType);
+                return `<option value="${acc.id}">${acc.name} (${accountType?.name || acc.accountType})</option>`;
+            }).join('');
     }
 
     populateAccountTypeOptions() {
         const select = document.getElementById('accountType');
         select.innerHTML = '<option value="">Select type...</option>' + 
             this.accountTypes.map(at => `<option value="${at.id}">${at.name}</option>`).join('');
+    }
+
+    populateEditAccountOptions(selectedAccountId) {
+        const select = document.getElementById('editAccount');
+        select.innerHTML = '<option value="">Select account...</option>' + 
+            this.accounts.map(acc => {
+                const accountType = this.accountTypes.find(at => at.id === acc.accountType);
+                return `<option value="${acc.id}">${acc.name} (${accountType?.name || acc.accountType})</option>`;
+            }).join('');
+    }
+
+    populateEditAssetClassOptions(selectedAssetClassId) {
+        const select = document.getElementById('editAssetClass');
+        select.innerHTML = '<option value="">Select asset class...</option>' + 
+            this.assetClasses.map(ac => `<option value="${ac.id}">${ac.name}</option>`).join('');
     }
 
     // View Management
@@ -487,11 +511,20 @@ class PortfolioManager {
     }
 
     showEditHoldingModal(holding) {
+        // Populate dropdown options
+        this.populateEditAccountOptions(holding.accountId);
+        this.populateEditAssetClassOptions(holding.assetClass);
+        
+        // Populate form fields
         document.getElementById('editHoldingId').value = holding.id;
+        document.getElementById('editAccount').value = holding.accountId;
+        document.getElementById('editAssetClass').value = holding.assetClass;
         document.getElementById('editSymbol').value = holding.symbol;
         document.getElementById('editName').value = holding.name;
         document.getElementById('editShares').value = holding.shares;
+        document.getElementById('editPurchasePrice').value = holding.purchasePrice;
         document.getElementById('editCurrentPrice').value = holding.currentPrice;
+        document.getElementById('editPurchaseDate').value = holding.purchaseDate ? holding.purchaseDate.split('T')[0] : '';
         
         document.getElementById('editHoldingModal').classList.add('show');
         document.getElementById('editShares').focus();
@@ -538,7 +571,8 @@ class PortfolioManager {
         const accountData = {
             name: formData.get('name'),
             accountType: formData.get('accountType'),
-            provider: formData.get('provider')
+            provider: formData.get('provider'),
+            websiteUrl: formData.get('websiteUrl')
         };
 
         try {
@@ -562,9 +596,14 @@ class PortfolioManager {
         const formData = new FormData(e.target);
         const holdingId = formData.get('id') || document.getElementById('editHoldingId').value;
         const updateData = {
+            accountId: formData.get('accountId'),
+            assetClass: formData.get('assetClass'),
+            symbol: formData.get('symbol').toUpperCase(),
             name: formData.get('name'),
             shares: parseFloat(formData.get('shares')),
-            currentPrice: parseFloat(formData.get('currentPrice'))
+            purchasePrice: parseFloat(formData.get('purchasePrice')),
+            currentPrice: parseFloat(formData.get('currentPrice')),
+            purchaseDate: formData.get('purchaseDate')
         };
 
         try {
@@ -776,6 +815,11 @@ class PortfolioManager {
                         </div>
                     </div>
                     <div class="account-actions">
+                        ${account.websiteUrl ? `
+                            <button class="btn btn-primary btn-small" onclick="window.open('${account.websiteUrl}', '_blank')" title="Open Account Website">
+                                <i class="fas fa-external-link-alt"></i>
+                            </button>
+                        ` : ''}
                         <button class="btn btn-secondary btn-small" onclick="portfolioManager.editAccount('${account.id}')" title="Edit">
                             <i class="fas fa-edit"></i>
                         </button>
@@ -820,6 +864,7 @@ class PortfolioManager {
         document.getElementById('editAccountId').value = account.id;
         document.getElementById('editAccountName').value = account.name;
         document.getElementById('editAccountProvider').value = account.provider || '';
+        document.getElementById('editAccountWebsiteUrl').value = account.websiteUrl || '';
 
         // Populate account type options with the current type selected
         this.populateEditAccountTypeOptions(account.accountType);
@@ -853,7 +898,8 @@ class PortfolioManager {
         const updateData = {
             name: formData.get('name'),
             accountType: formData.get('accountType'),
-            provider: formData.get('provider')
+            provider: formData.get('provider'),
+            websiteUrl: formData.get('websiteUrl')
         };
 
         try {

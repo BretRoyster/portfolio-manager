@@ -282,6 +282,10 @@ body {
 }
 
 /* Transactions */
+.transactions-section {
+    display: none;
+}
+
 .transactions-container {
     max-height: 400px;
     overflow-y: auto;
@@ -711,6 +715,27 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     background: #667eea;
+}
+
+.account-badge-link {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.account-badge-link:hover {
+    background: #5a67d8;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+}
+
+.account-badge-link:after {
+    content: '\f35d';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    margin-left: 4px;
+    font-size: 10px;
+    opacity: 0.8;
 }
 
 .form-row {

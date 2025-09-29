@@ -188,11 +188,11 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="shares">Shares/Units *</label>
-                        <input type="number" id="shares" name="shares" required step="0.001" min="0" placeholder="100">
+                        <input type="number" id="shares" name="shares" required step="0.0000000001" min="0" placeholder="100">
                     </div>
                     <div class="form-group">
                         <label for="purchasePrice">Purchase Price *</label>
-                        <input type="number" id="purchasePrice" name="purchasePrice" required step="1" min="0" placeholder="150.00">
+                        <input type="number" id="purchasePrice" name="purchasePrice" required step="0.0000000001" min="0" placeholder="150.00">
                     </div>
                 </div>
                 <div class="form-group">
@@ -223,8 +223,22 @@
             <form id="editHoldingForm" class="modal-body">
                 <input type="hidden" id="editHoldingId">
                 <div class="form-group">
+                    <label for="editAccount">Account *</label>
+                    <select id="editAccount" name="accountId" required>
+                        <option value="">Select account...</option>
+                        <!-- Options will be populated dynamically -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editAssetClass">Asset Class *</label>
+                    <select id="editAssetClass" name="assetClass" required>
+                        <option value="">Select asset class...</option>
+                        <!-- Options will be populated dynamically -->
+                    </select>
+                </div>
+                <div class="form-group">
                     <label for="editSymbol">Stock Symbol *</label>
-                    <input type="text" id="editSymbol" name="symbol" required readonly>
+                    <input type="text" id="editSymbol" name="symbol" required>
                 </div>
                 <div class="form-group">
                     <label for="editName">Company Name</label>
@@ -233,11 +247,21 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="editShares">Shares *</label>
-                        <input type="number" id="editShares" name="shares" required step="0.001" min="0">
+                        <input type="number" id="editShares" name="shares" required step="0.0000000001" min="0">
                     </div>
                     <div class="form-group">
+                        <label for="editPurchasePrice">Purchase Price *</label>
+                        <input type="number" id="editPurchasePrice" name="purchasePrice" required step="0.0000000001" min="0">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
                         <label for="editCurrentPrice">Current Price *</label>
-                        <input type="number" id="editCurrentPrice" name="currentPrice" required step="1" min="0">
+                        <input type="number" id="editCurrentPrice" name="currentPrice" required step="0.0000000001" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="editPurchaseDate">Purchase Date</label>
+                        <input type="date" id="editPurchaseDate" name="purchaseDate">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -287,6 +311,11 @@
                         <label for="accountProvider">Provider/Institution</label>
                         <input type="text" id="accountProvider" name="provider" placeholder="e.g., Fidelity, Vanguard, Charles Schwab">
                     </div>
+                    <div class="form-group">
+                        <label for="accountWebsiteUrl">Account Website URL</label>
+                        <input type="url" id="accountWebsiteUrl" name="websiteUrl" placeholder="e.g., https://www.fidelity.com/accounts">
+                        <small class="form-help">Direct link to your account login or dashboard page</small>
+                    </div>
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" onclick="hideAddAccountForm()">
                             Cancel
@@ -332,6 +361,11 @@
                 <div class="form-group">
                     <label for="editAccountProvider">Provider/Institution</label>
                     <input type="text" id="editAccountProvider" name="provider" placeholder="e.g., Fidelity, Vanguard, Charles Schwab">
+                </div>
+                <div class="form-group">
+                    <label for="editAccountWebsiteUrl">Account Website URL</label>
+                    <input type="url" id="editAccountWebsiteUrl" name="websiteUrl" placeholder="e.g., https://www.fidelity.com/accounts">
+                    <small class="form-help">Direct link to your account login or dashboard page</small>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="hideEditAccountModal()">
