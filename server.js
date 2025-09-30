@@ -405,7 +405,7 @@ app.get('/api/accounts', async (req, res) => {
 // Add new account
 app.post('/api/accounts', async (req, res) => {
   try {
-    const { name, accountType, provider } = req.body;
+    const { name, accountType, provider, websiteUrl } = req.body;
     
     if (!name || !accountType) {
       return res.status(400).json({ error: 'Account name and type are required' });
@@ -417,6 +417,7 @@ app.post('/api/accounts', async (req, res) => {
       name: name,
       accountType: accountType,
       provider: provider || '',
+      websiteUrl: websiteUrl || '',
       createdDate: new Date().toISOString().split('T')[0]
     };
 
@@ -463,7 +464,7 @@ app.put('/api/accounts/:id/balance', async (req, res) => {
 app.put('/api/accounts/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, accountType, provider } = req.body;
+    const { name, accountType, provider, websiteUrl } = req.body;
     
     if (!name || !accountType) {
       return res.status(400).json({ error: 'Account name and type are required' });
@@ -481,7 +482,8 @@ app.put('/api/accounts/:id', async (req, res) => {
       ...data.accounts[accountIndex],
       name,
       accountType,
-      provider: provider || ''
+      provider: provider || '',
+      websiteUrl: websiteUrl || ''
     };
 
     await writePortfolioData(data);

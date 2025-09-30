@@ -76,8 +76,8 @@
                 </div>
             </section>
 
-            <!-- Asset Allocation -->
-            <section class="asset-allocation-section">
+            <!-- Asset Allocation (Hidden by default) -->
+            <section class="asset-allocation-section" style="display: none;">
                 <div class="section-header">
                     <h2>Asset Allocation</h2>
                     <div class="section-actions">
@@ -85,7 +85,7 @@
                             <i class="fas fa-refresh"></i> Refresh
                         </button>
                         <button class="btn btn-secondary" onclick="toggleView()" id="viewToggle">
-                            <i class="fas fa-list"></i> View Holdings
+                            <i class="fas fa-chart-pie"></i> View Asset Allocation
                         </button>
                     </div>
                 </div>
@@ -104,8 +104,8 @@
                 </div>
             </section>
 
-            <!-- Holdings Table (Hidden by default) -->
-            <section class="holdings-section" id="holdingsSection" style="display: none;">
+            <!-- Holdings Table (Shown by default) -->
+            <section class="holdings-section" id="holdingsSection">
                 <div class="section-header">
                     <h2>All Holdings</h2>
                     <div class="section-actions">

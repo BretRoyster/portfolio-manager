@@ -13,7 +13,7 @@ class PortfolioManager {
         this.dcaPlan = null;
         this.dcaRecommendations = null;
         this.currentDcaTab = 'setup';
-        this.currentView = 'allocation'; // 'allocation' or 'holdings'
+        this.currentView = 'holdings'; // 'allocation' or 'holdings'
         this.init();
     }
 
@@ -147,6 +147,25 @@ class PortfolioManager {
                 this.hideEditAccountModal();
             }
         });
+
+        // Event delegation for account URL clicks
+        document.addEventListener('click', (e) => {
+            // Handle account badge button clicks
+            if (e.target.classList.contains('account-badge-link') && e.target.dataset.accountUrl) {
+                e.preventDefault();
+                this.openAccountUrl(e.target.dataset.accountUrl);
+            }
+            // Handle account link button clicks
+            if (e.target.classList.contains('account-link-btn') && e.target.dataset.accountUrl) {
+                e.preventDefault();
+                this.openAccountUrl(e.target.dataset.accountUrl);
+            }
+            // Handle clicks on the icon inside the button
+            if (e.target.parentElement && e.target.parentElement.classList.contains('account-link-btn') && e.target.parentElement.dataset.accountUrl) {
+                e.preventDefault();
+                this.openAccountUrl(e.target.parentElement.dataset.accountUrl);
+            }
+        });
     }
 
     setDefaultDate() {
@@ -273,14 +292,18 @@ class PortfolioManager {
             const account = this.accounts.find(acc => acc.id === holding.accountId);
             const accountName = account ? account.name : 'Unknown Account';
             
+            const accountBadgeHtml = account?.websiteUrl ? 
+                `<button class="account-badge account-badge-link" data-account-url="${account.websiteUrl}" title="Open ${accountName} Account" type="button">${accountName}</button>` : 
+                `<span class="account-badge">${accountName}</span>`;
+            
+            // Debug log to verify account data
+            if (account?.websiteUrl) {
+                console.log(`Account ${accountName} has URL: ${account.websiteUrl}`);
+            }
+            
             return `
                 <tr>
-                    <td>
-                        ${account?.websiteUrl ? 
-                            `<span class="account-badge account-badge-link" onclick="window.open('${account.websiteUrl}', '_blank')" title="Open ${accountName} Account">${accountName}</span>` : 
-                            `<span class="account-badge">${accountName}</span>`
-                        }
-                    </td>
+                    <td>${accountBadgeHtml}</td>
                     <td><span class="asset-class-badge" style="background-color: ${assetClass?.color || '#718096'}">${assetClassName}</span></td>
                     <td class="symbol">${holding.symbol}</td>
                     <td>${holding.name}</td>
@@ -665,6 +688,13 @@ class PortfolioManager {
         }
     }
 
+    // Account URL Helper
+    openAccountUrl(url) {
+        if (url && url.trim()) {
+            window.open(url, '_blank');
+        }
+    }
+
     // Utility Methods
     formatCurrency(amount) {
         return new Intl.NumberFormat('en-US', {
@@ -816,7 +846,7 @@ class PortfolioManager {
                     </div>
                     <div class="account-actions">
                         ${account.websiteUrl ? `
-                            <button class="btn btn-primary btn-small" onclick="window.open('${account.websiteUrl}', '_blank')" title="Open Account Website">
+                            <button class="btn btn-primary btn-small account-link-btn" data-account-url="${account.websiteUrl}" title="Open Account Website">
                                 <i class="fas fa-external-link-alt"></i>
                             </button>
                         ` : ''}
